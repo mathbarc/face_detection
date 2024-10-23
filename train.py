@@ -148,7 +148,7 @@ def train_net(n_epochs, batch_size, lr):
 
 
     ## TODO: specify loss function
-    criterion = nn.MSELoss(reduction="sum")
+    criterion = nn.MSELoss()
 
     ## TODO: specify optimizer
     optimizer = optim.ASGD(net.parameters(),lr=lr)
