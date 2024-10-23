@@ -255,11 +255,11 @@ if __name__ == "__main__":
     print('Number of images: ', len(transformed_dataset))
 
         
-
-
+ 
+    test_transform = transforms.Compose( [CropFace(1., 1.), Rescale((100,100)), Normalize(), ToTensor()])
     test_dataset = FacialKeypointsDataset(csv_file=data_path+'/test_frames_keypoints.csv',
                                                 root_dir=data_path+'/test/',
-                                                transform=data_transform)
+                                                transform=test_transform)
 
     # train your network
     n_epochs = 1000 # start small, and increase when you've decided on your model structure and hyperparams

@@ -87,7 +87,10 @@ class CropFace(object):
         faces = self.face_cascade.detectMultiScale(image, 1.2, 2)
         if len(faces):
             x,y,w,h = faces[0]
-            scale = (random.randrange(0,100,10) * (self.face_scale_max - self.face_scale_min) / 100) + self.face_scale_min
+            if self.face_scale_min != self.face_scale_max:
+                scale = (random.randrange(0,100,10) * (self.face_scale_max - self.face_scale_min) / 100) + self.face_scale_min
+            else:
+                scale = self.face_scale_max
 
             w_diff = abs(1.-scale)*w
             h_diff = abs(1.-scale)*h
