@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import torch.optim as optim
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -13,10 +14,13 @@ from data_load import FacialKeypointsDataset
 # the transforms we defined in Notebook 1 are in the helper file `data_load.py`
 from data_load import Rescale, RandomCrop, Normalize, ToTensor
 
+import mlflow
+import mlflow.pytorch
+
 ## TODO: Once you've define the network, you can instantiate it
 # one example conv layer has been provided for you
 import models
-
+import sys
 
 
 def net_sample_output():
@@ -90,7 +94,7 @@ def visualize_output(test_images, test_outputs, gt_pts=None, batch_size=10):
     plt.show()
 
 
-def test_loss():
+def test_loss(test_loader):
     mean = 0
     count = 0
     testCriterion = nn.MSELoss()
@@ -125,12 +129,47 @@ def test_loss():
     return mean / count
 
 
-def train_net(n_epochs):
+def train_net(n_epochs, batch_size, lr):
+
+
+    train_loader = DataLoader(transformed_dataset,
+                            batch_size=batch_size,
+                            shuffle=True,
+                            num_workers=0)
+    
+    test_loader = DataLoader(test_dataset,
+                            batch_size=batch_size,
+                            shuffle=True,
+                            num_workers=0)
 
     # prepare the net for training
     net.train(True)
     training_loss = []
     testing_loss = []
+
+
+    ## TODO: specify loss function
+    criterion = nn.MSELoss()
+
+    ## TODO: specify optimizer
+    optimizer = optim.ASGD(net.parameters(),lr=lr)
+
+    training_params = {
+        "lr" : lr,
+        "batch_size" : batch_size,
+        "n_epochs" : n_epochs
+    }
+    
+    mlflow.set_tracking_uri("http://mlflow.cluster.local")
+    experiment = mlflow.get_experiment_by_name("Face Detection")
+    if experiment is None:
+        experiment_id = mlflow.create_experiment("Face Detection")
+    else:
+        experiment_id = experiment.experiment_id
+    mlflow.start_run(experiment_id=experiment_id)
+    mlflow.log_params(training_params)
+
+    best_test_loss = sys.float_info.max
     for epoch in range(n_epochs):  # loop over the dataset multiple times
 
         running_loss = 0.0
@@ -171,12 +210,22 @@ def train_net(n_epochs):
             # print loss statistics
             running_loss += loss.item()
             counter += 1
-        tLoss = test_loss()
+        tLoss = test_loss(test_loader)
         training_loss.append(running_loss/counter)
         testing_loss.append(tLoss)
+        metrics = {
+            "training_loss":running_loss/counter,
+            "testing_loss":tLoss
+        }
+        mlflow.log_metrics(metrics,epoch+1)
         print('Epoch: {}, Batch: {}, Avg. Loss: {}, Avg. Testing Loss: {}'.format(epoch + 1, batch_i+1, running_loss/counter, tLoss))
+        mlflow.pytorch.log_model(net, "last",extra_files=["./models.py"])
+        if tLoss < best_test_loss:
+            best_test_loss = tLoss
+            mlflow.pytorch.log_model(net, "best",extra_files=["./models.py"])
         running_loss = 0.0
         counter=0
+
     net.train(False)
     print('Finished Training')
     return training_loss, testing_loss
@@ -206,51 +255,12 @@ if __name__ == "__main__":
 
     print('Number of images: ', len(transformed_dataset))
 
-    # iterate through the transformed dataset and print some stats about the first few samples
-    for i in range(4):
-        sample = transformed_dataset[i]
-        print(i, sample['image'].size(), sample['keypoints'].size(), sample['image'].device, sample['keypoints'].device)
         
 
-    train_loader = DataLoader(transformed_dataset,
-                            batch_size=batch_size,
-                            shuffle=True,
-                            num_workers=0)
 
     test_dataset = FacialKeypointsDataset(csv_file=data_path+'/test_frames_keypoints.csv',
                                                 root_dir=data_path+'/test/',
                                                 transform=data_transform)
-
-
-    test_loader = DataLoader(test_dataset,
-                            batch_size=batch_size,
-                            shuffle=True,
-                            num_workers=0)
-
-
-    # test the model on a batch of test images
-            
-    # call the above function
-    # returns: test images, test predicted keypoints, test ground truth keypoints
-    test_images, test_outputs, gt_pts = net_sample_output()
-
-    # print out the dimensions of the data to see if they make sense
-    print(test_images.data.size())
-    print(test_outputs.data.size())
-    print(gt_pts.size())
-
-
-    # call it
-    visualize_output(test_images, test_outputs, gt_pts, 4)
-
-    ## TODO: Define the loss and optimization
-    import torch.optim as optim
-
-    ## TODO: specify loss function
-    criterion = nn.MSELoss()
-
-    ## TODO: specify optimizer
-    optimizer = optim.ASGD(net.parameters(),lr=0.1)
 
     # train your network
     n_epochs = 1000 # start small, and increase when you've decided on your model structure and hyperparams
@@ -259,7 +269,7 @@ if __name__ == "__main__":
     # alive while training your model, not part of pytorch
     #with active_session():
     #    train_net(n_epochs)
-    training_loss, testing_loss = train_net(n_epochs)
+    training_loss, testing_loss = train_net(n_epochs, batch_size, 0.1)
 
     plt.plot(range(1,len(training_loss)+1), training_loss)
     plt.plot(range(1,len(testing_loss)+1), testing_loss)

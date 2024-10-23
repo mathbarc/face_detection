@@ -84,10 +84,8 @@ def detectFace(image, net, face_cascade):
         ## TODO: Display each detected face and the corresponding keypoints        
         out = output.detach().numpy()
         out = out+.5
-        print(out[0,:])
         out[:,0] = (out[:,0]*w)+x
         out[:,1] = (out[:,1]*h)+y
-        print(out[0,:])
 
         results.append((rect, out))
         
