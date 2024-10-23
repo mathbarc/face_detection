@@ -32,10 +32,10 @@ def show_all_keypoints(image, predicted_key_pts, gt_pts=[]):
     """Show image with predicted keypoints"""
     
     for point in predicted_key_pts:
-        cv2.circle(image, point.astype(numpy.uint32), 5, (0,255,0), -1)
+        cv2.circle(image, point.astype(numpy.int32), 5, (0,255,0), -1)
 
     for point in gt_pts:
-        cv2.circle(image, point.astype(numpy.uint32), 5, (255,0,255), -1)
+        cv2.circle(image, point.astype(numpy.int32), 5, (255,0,255), -1)
 
 
 def detectFace(image, net, face_cascade):
@@ -53,9 +53,19 @@ def detectFace(image, net, face_cascade):
     for rect in faces:
         (x,y,w,h) = rect 
 
-        #print(x,y)
+        w_diff = 1.*w
+        h_diff = 1.*h
+        
+        w = int(min(2. * w, image.shape[0]))
+        h = int(min(2. * h, image.shape[1]))
+
+        x = int(max(x - w_diff/2., 0))
+        y = int(max(y - h_diff/2., 0))
+
+
         # Select the region of interest that is the face in the image 
         roi = image_copy[y:y+h, x:x+w]
+
         
         ## TODO: Convert the face region from RGB to grayscale
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -87,7 +97,7 @@ def detectFace(image, net, face_cascade):
         out[:,0] = (out[:,0]*w)+x
         out[:,1] = (out[:,1]*h)+y
 
-        results.append((rect, out))
+        results.append((numpy.array([x,y,w,h],numpy.int32), out))
         
     return results
 
@@ -100,11 +110,12 @@ if __name__ == "__main__":
     # load in a haar cascade classifier for detecting frontal faces
     face_cascade = cv2.CascadeClassifier('/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
 
-    net = FaceDetectionNet()
+    #net = FaceDetectionNet()
 
     ## TODO: load the best saved model parameters (by your path name)
     ## You'll need to un-comment the line below and add the correct name for *your* saved model
-    net.load_state_dict(torch.load('keypoints_model_1.pt'))
+    # net.load_state_dict(torch.load('keypoints_model_1.pt'))
+    net = torch.load('keypoints_model_1.pt')
     net = net.double()
 
     ## print out your net and prepare it for testing (uncomment the line below)
@@ -122,7 +133,7 @@ if __name__ == "__main__":
         ret, image = cap.read()
         if not ret:
             break
-        image = image[:,900:]
+        #image = image[:,900:]
         results = detectFace(image, net, face_cascade)
 
         for (rect, face_points) in results:

@@ -12,7 +12,7 @@ from torchvision import transforms, utils
 # the dataset we created in Notebook 1 is copied in the helper file `data_load.py`
 from data_load import FacialKeypointsDataset
 # the transforms we defined in Notebook 1 are in the helper file `data_load.py`
-from data_load import Rescale, RandomCrop, Normalize, ToTensor
+from data_load import Rescale, RandomCrop, Normalize, ToTensor, CropFace
 
 import mlflow
 import mlflow.pytorch
@@ -23,7 +23,7 @@ import models
 import sys
 
 
-def net_sample_output():
+def net_sample_output(test_loader):
 
     # iterate through the test dataset
     for i, sample in enumerate(test_loader):
@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
     ## TODO: define the data_transform using transforms.Compose([all tx's, . , .])
     # order matters! i.e. rescaling should come before a smaller crop
-    data_transform = transforms.Compose( [Rescale((200,200)), RandomCrop((100,100)), Normalize(), ToTensor()])
+    data_transform = transforms.Compose( [CropFace(1.), Rescale((200,200)), RandomCrop((100,100)), Normalize(), ToTensor()])
 
     # testing that you've defined a transform
     assert(data_transform is not None), 'Define a data_transform'
@@ -270,19 +270,6 @@ if __name__ == "__main__":
     #with active_session():
     #    train_net(n_epochs)
     training_loss, testing_loss = train_net(n_epochs, batch_size, 0.1)
-
-    plt.plot(range(1,len(training_loss)+1), training_loss)
-    plt.plot(range(1,len(testing_loss)+1), testing_loss)
-    plt.legend(["train", "test"])
-
-    # get a sample of test data again
-    test_images, test_outputs, gt_pts = net_sample_output()
-
-    print(test_images.data.size())
-    print(test_outputs.data.size())
-    print(gt_pts.size())
-
-    visualize_output(test_images, test_outputs, gt_pts,4)
 
     ## TODO: change the name to something uniqe for each new model
     model_dir = './'

@@ -71,6 +71,36 @@ class Normalize(object):
 
         return {'image': image_copy, 'keypoints': key_pts_copy}
 
+class CropFace(object):
+    def __init__(self, face_scale:float = 2) -> None:
+        self.face_cascade = cv2.CascadeClassifier('/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
+        self.face_scale = face_scale
+        
+
+    def __call__(self, sample):
+        image, key_pts = sample["image"], sample["keypoints"]
+
+        faces = self.face_cascade.detectMultiScale(image, 1.2, 2.)
+        
+        x,y,w,h = faces[0]
+
+        w_diff = self.face_scale*w
+        h_diff = self.face_scale*h
+        
+        w = int(min((1. + self.face_scale) * w, image.shape[0]))
+        h = int(min((1. + self.face_scale) * h, image.shape[1]))
+
+        x = int(max(x - w_diff/2., 0))
+        y = int(max(y - h_diff/2., 0))
+
+        face = image[y:y+h, x:x+w]
+        key_pts = key_pts + [-x,-y]
+
+        return {"image":face, "keypoints":key_pts}
+
+
+
+
 
 class Rescale(object):
     """Rescale the image in a sample to a given size.
