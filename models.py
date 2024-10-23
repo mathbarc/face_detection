@@ -44,7 +44,7 @@ class FaceDetectionNet(nn.Module):
         self.dropout2 = nn.Dropout(p=0.2)
         self.dense2 = nn.Linear(256, 136)
         
-        #self.output = nn.Tanh()
+        self.output = nn.Tanh()
         
         ## Note that among the layers to add, consider including:
         # maxpooling layers, multiple conv layers, fully-connected layers, and other layers (such as dropout or batch normalization) to avoid overfitting
@@ -87,6 +87,6 @@ class FaceDetectionNet(nn.Module):
         x = F.relu(self.dense1(x))
         x = self.dropout2(x)
         x = self.dense2(x)
-        # x = self.output(x)
+        x = self.output(x)
         # a modified x, having gone through all the layers of your model, should be returned
         return x

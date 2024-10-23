@@ -1,9 +1,10 @@
 import glob
 import os
+from matplotlib.pyplot import sca
 from scipy.sparse import data
 import torch
 from torch.utils.data import Dataset, DataLoader
-import numpy as np
+import numpy
 import matplotlib.image as mpimg
 import pandas as pd
 import cv2
@@ -57,8 +58,8 @@ class Normalize(object):
     def __call__(self, sample):
         image, key_pts = sample['image'], sample['keypoints']
         
-        image_copy = np.copy(image)
-        key_pts_copy = np.copy(key_pts)
+        image_copy = numpy.copy(image)
+        key_pts_copy = numpy.copy(key_pts)
 
         # convert image to grayscale
         image_copy = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -74,41 +75,41 @@ class Normalize(object):
         return {'image': image_copy, 'keypoints': key_pts_copy}
 
 class CropFace(object):
-    def __init__(self, face_scale_min:float = 1.2, face_scale_max:float=2) -> None:
-        self.face_cascade = cv2.CascadeClassifier('/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
-        self.face_scale_min = face_scale_min
-        self.face_scale_max = face_scale_max
-        
+
+    def __init__(self, scale=1.) -> None:
+        if isinstance(scale, tuple) or isinstance(scale, list):
+            self.scale_min = scale[0]
+            self.scale_max = scale[1]
+        else:
+            self.scale = scale
+
 
     def __call__(self, sample):
+
         image, key_pts = sample["image"], sample["keypoints"]
 
+        face_rect = cv2.boundingRect(key_pts.astype(numpy.int32))
 
-        faces = self.face_cascade.detectMultiScale(image, 1.2, 2)
-        if len(faces):
-            x,y,w,h = faces[0]
-            if self.face_scale_min != self.face_scale_max:
-                scale = (random.randrange(0,100,10) * (self.face_scale_max - self.face_scale_min) / 100) + self.face_scale_min
-            else:
-                scale = self.face_scale_max
+        x,y,w,h = face_rect
 
-            w_diff = abs(1.-scale)*w
-            h_diff = abs(1.-scale)*h
-        
-            w = int(min(scale * w, image.shape[0]))
-            h = int(min(scale * h, image.shape[1]))
-
-            x = int(max(x - w_diff/2., 0))
-            y = int(max(y - h_diff/2., 0))
-
-
-            face = image[y:y+h, x:x+w]
-            key_pts = key_pts + [-x,-y]
-
-            return {"image":face, "keypoints":key_pts}
+        if hasattr(self,"scale_min") and hasattr(self,"scale_max"):
+            scale = (random.randrange(0,100,10) * (self.scale_max - self.scale_min) / 100) + self.scale_min
         else:
-            print("face not found")
-            return sample
+            scale = self.scale
+
+        w_diff = abs(1.-scale)*w
+        h_diff = abs(1.-scale)*h
+        
+        w = int(min(scale * w, image.shape[0]))
+        h = int(min(scale * h, image.shape[1]))
+        x = int(max(x - w_diff/2., 0))
+        y = int(max(y - h_diff/2., 0))
+
+
+        face = image[y:y+h, x:x+w]
+        key_pts = key_pts + [-x,-y]
+
+        return {"image":face, "keypoints":key_pts}
 
 
 class Rescale(object):
@@ -171,8 +172,8 @@ class RandomCrop(object):
         #print(h, new_h)
         #print(w, new_w)
 
-        top = np.random.randint(0, h - new_h)
-        left = np.random.randint(0, w - new_w)
+        top = numpy.random.randint(0, h - new_h)
+        left = numpy.random.randint(0, w - new_w)
 
         image = image[top: top + new_h,
                       left: left + new_w]
@@ -208,7 +209,7 @@ class ToTensor(object):
 if __name__ == "__main__":
 
     from torchvision.transforms import Compose
-    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace(.9,2.), Rescale((100,100)), Normalize()]))
+    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace((1.,1.5)), Rescale((100,100)), Normalize()]))
 
     
 
@@ -217,8 +218,6 @@ if __name__ == "__main__":
         
         key_pts = key_pts * [50,50]
         key_pts = key_pts + [50,50]
-
-        print(key_pts)
 
 
         show_all_keypoints(img, key_pts)
