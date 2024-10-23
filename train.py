@@ -146,7 +146,7 @@ def train_net(n_epochs):
             key_pts = key_pts.view(key_pts.size(0), -1)
 
             # convert variables to floats for regression loss
-            if(torch.cuda.is_initialized()):
+            if(torch.cuda.is_available()):
                 key_pts = key_pts.type(torch.cuda.FloatTensor)
                 images = images.type(torch.cuda.FloatTensor)
             else:
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     net = models.FaceDetectionNet()
     print(net)
 
-    if(torch.cuda.is_initialized()):
+    if(torch.cuda.is_available()):
         net = net.cuda()
 
     ## TODO: define the data_transform using transforms.Compose([all tx's, . , .])

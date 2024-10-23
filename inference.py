@@ -1,3 +1,4 @@
+from math import factorial
 import numpy
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -27,38 +28,17 @@ def toTensor(img):
         image_tensor = image_tensor.cuda()
     return image_tensor
     
-def show_all_keypoints(image, predicted_key_pts, gt_pts=None):
+def show_all_keypoints(image, predicted_key_pts, gt_pts=[]):
     """Show image with predicted keypoints"""
-    # image is grayscale
-    imgSize = image.shape
-
-    if(len(imgSize) == 3):
-        show = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        plt.imshow(show)
-    else:
-        show = image
-        plt.imshow(show, cmap="gray")
     
-    
-    plt.scatter((predicted_key_pts[:, 0]), (predicted_key_pts[:, 1]), s=20, marker='.', c='m')
-    # plot ground truth points as green pts
-    if gt_pts is not None:
-        plt.scatter(gt_pts[:, 0], gt_pts[:, 1], s=20, marker='.', c='g')
+    for point in predicted_key_pts:
+        cv2.circle(image, point.astype(numpy.uint32), 5, (0,255,0), -1)
+
+    for point in gt_pts:
+        cv2.circle(image, point.astype(numpy.uint32), 5, (255,0,255), -1)
 
 
-if __name__ == "__main__":
-
-
-    # load in color image for face detection
-    image = cv2.imread('data/ssd1/Datasets/Faces/training/Abdullah_Gul_10.jpg')
-    showImg = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # plot the image
-    cv2.imshow(showImg)
-    cv2.waitKey()
-
-    # load in a haar cascade classifier for detecting frontal faces
-    face_cascade = cv2.CascadeClassifier('/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
+def detectFace(image, net, face_cascade):
 
     # run the detector
     # the output here is an array of detections; the corners of each detection box
@@ -66,44 +46,13 @@ if __name__ == "__main__":
     faces = face_cascade.detectMultiScale(image, 1.2, 2)
 
     # make a copy of the original image to plot detections on
-    image_with_detections = showImg.copy()
-
-    # loop over the detected faces, mark the image where each face is found
-    for (x,y,w,h) in faces:
-        # draw a rectangle around each detected face
-        # you may also need to change the width of the rectangle drawn depending on image resolution
-        cv2.rectangle(image_with_detections,(x,y),(x+w,y+h),(255,0,0),3) 
-
-    cv2.imshow(image_with_detections)
-    cv2.waitKey()
-
-
-    net = FaceDetectionNet()
-
-    ## TODO: load the best saved model parameters (by your path name)
-    ## You'll need to un-comment the line below and add the correct name for *your* saved model
-    net.load_state_dict(torch.load('keypoints_model_1.pt'))
-    net = net.double()
-
-    ## print out your net and prepare it for testing (uncomment the line below)
-    net.eval()
-
-    if torch.cuda.is_available():
-        print("using cuda:", torch.cuda.get_device_name())
-        torch.cuda.init()
-    if(torch.cuda.is_initialized()):
-        net = net.cuda()
-        
-        
-
-            
-            
     image_copy = image.copy()
 
+    results = []
     # loop over the detected faces from your haar cascade
-    i=0
-    for (x,y,w,h) in faces:
-        
+    for rect in faces:
+        (x,y,w,h) = rect 
+
         #print(x,y)
         # Select the region of interest that is the face in the image 
         roi = image_copy[y:y+h, x:x+w]
@@ -134,11 +83,55 @@ if __name__ == "__main__":
         #i+=1
         ## TODO: Display each detected face and the corresponding keypoints        
         out = output.detach().numpy()
-        out = out*100.+50.
-        out[:,0] = (out[:,0]*(w/100.))+x
-        out[:,1] = (out[:,1]*(h/100.))+y
-        
-        show_all_keypoints(image, out)
+        out = out+.5
+        print(out[0,:])
+        out[:,0] = (out[:,0]*w)+x
+        out[:,1] = (out[:,1]*h)+y
+        print(out[0,:])
 
-    plt.show()
+        results.append((rect, out))
+        
+    return results
+
+
+if __name__ == "__main__":
+
+
+    # load in color image for face detection
+    cap = cv2.VideoCapture(0)
+    # load in a haar cascade classifier for detecting frontal faces
+    face_cascade = cv2.CascadeClassifier('/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
+
+    net = FaceDetectionNet()
+
+    ## TODO: load the best saved model parameters (by your path name)
+    ## You'll need to un-comment the line below and add the correct name for *your* saved model
+    net.load_state_dict(torch.load('keypoints_model_1.pt'))
+    net = net.double()
+
+    ## print out your net and prepare it for testing (uncomment the line below)
+    net.eval()
+
+    if torch.cuda.is_available():
+        print("using cuda:", torch.cuda.get_device_name())
+        torch.cuda.init()
+    if(torch.cuda.is_initialized()):
+        net = net.cuda()
+        
+    cv2.namedWindow("result", cv2.WINDOW_NORMAL)
+    key = 0
+    while key != 27:
+        ret, image = cap.read()
+        if not ret:
+            break
+        image = image[:,900:]
+        results = detectFace(image, net, face_cascade)
+
+        for (rect, face_points) in results:
+            show_all_keypoints(image, face_points)
+            cv2.rectangle(image, rect[:2], rect[:2]+rect[2:4], (0,255,0),3)
+
+        cv2.imshow("result", image)
+        key = cv2.waitKey(33)
+            
         
