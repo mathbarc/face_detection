@@ -44,12 +44,14 @@ def detectFace(image, net, face_cascade):
     # loop over the detected faces from your haar cascade
     for rect in faces:
         (x,y,w,h) = rect 
-
-        w_diff = 1.*w
-        h_diff = 1.*h
         
-        w = int(min(2. * w, image.shape[0]))
-        h = int(min(2. * h, image.shape[1]))
+        scale = 2.
+
+        w_diff = abs(scale-1)*w
+        h_diff = abs(scale-1)*h
+        
+        w = int(min(scale * w, image.shape[0]))
+        h = int(min(scale * h, image.shape[1]))
 
         x = int(max(x - w_diff/2., 0))
         y = int(max(y - h_diff/2., 0))
@@ -75,7 +77,6 @@ def detectFace(image, net, face_cascade):
         #print(netInput.shape)
         output = net(netInput)
         output = output.view(68, 2)
-        output = output
         #print(output.shape)
         if(torch.cuda.is_initialized()):
             output = output.cpu()
@@ -85,7 +86,7 @@ def detectFace(image, net, face_cascade):
         #i+=1
         ## TODO: Display each detected face and the corresponding keypoints        
         out = output.detach().numpy()
-        out = out+.5
+        out = (out+1)/2.
         out[:,0] = (out[:,0]*w)+x
         out[:,1] = (out[:,1]*h)+y
 
