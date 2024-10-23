@@ -69,7 +69,7 @@ class Normalize(object):
         
         # scale keypoints to be centered around 0 with a range of [-1, 1]
         # mean = 100, sqrt = 50, so, pts should be (pts - 100)/50
-        key_pts_copy = (key_pts_copy-50)/100.
+        key_pts_copy = (key_pts_copy-50)/50.
 
         return {'image': image_copy, 'keypoints': key_pts_copy}
 
@@ -106,10 +106,6 @@ class CropFace(object):
         else:
             print("face not found")
             return sample
-
-
-
-
 
 
 class Rescale(object):
@@ -209,12 +205,18 @@ class ToTensor(object):
 if __name__ == "__main__":
 
     from torchvision.transforms import Compose
-    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace(.9,2.), Rescale((100,100))]))
+    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace(.9,2.), Rescale((100,100)), Normalize()]))
 
     
 
     for sample in dataset:
         img, key_pts = sample["image"], sample["keypoints"]
+        
+        key_pts = key_pts * [50,50]
+        key_pts = key_pts + [50,50]
+
+        print(key_pts)
+
 
         show_all_keypoints(img, key_pts)
         cv2.imshow("face", img)
