@@ -22,7 +22,6 @@ import mlflow.pytorch
 import models
 import sys
 
-
 def net_sample_output(test_loader):
 
     # iterate through the test dataset
@@ -241,7 +240,7 @@ if __name__ == "__main__":
 
     ## TODO: define the data_transform using transforms.Compose([all tx's, . , .])
     # order matters! i.e. rescaling should come before a smaller crop
-    data_transform = transforms.Compose( [CropFace(1.), Rescale((200,200)), RandomCrop((100,100)), Normalize(), ToTensor()])
+    data_transform = transforms.Compose( [CropFace(.9, 2.), Rescale((100,100)), Normalize(), ToTensor()])
 
     # testing that you've defined a transform
     assert(data_transform is not None), 'Define a data_transform'
