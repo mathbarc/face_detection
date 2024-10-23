@@ -21,6 +21,7 @@ import mlflow.pytorch
 # one example conv layer has been provided for you
 import models
 import sys
+from schedulers import RampUpCosineDecayScheduler
 
 def net_sample_output(test_loader):
 
@@ -153,6 +154,8 @@ def train_net(n_epochs, batch_size, lr):
     ## TODO: specify optimizer
     optimizer = optim.ASGD(net.parameters(),lr=lr)
 
+    scheduler = RampUpCosineDecayScheduler(optimizer, lr, 1e-5, 1000, 10)
+
     training_params = {
         "lr" : lr,
         "batch_size" : batch_size,
@@ -214,8 +217,10 @@ def train_net(n_epochs, batch_size, lr):
         testing_loss.append(tLoss)
         metrics = {
             "training_loss":running_loss/counter,
-            "testing_loss":tLoss
+            "testing_loss":tLoss,
+            "lr":scheduler.get_last_lr()
         }
+        scheduler.step()
         mlflow.log_metrics(metrics,epoch+1)
         print('Epoch: {}, Batch: {}, Avg. Loss: {}, Avg. Testing Loss: {}'.format(epoch + 1, batch_i+1, running_loss/counter, tLoss))
         mlflow.pytorch.log_model(net, "last",extra_files=["./models.py"])
