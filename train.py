@@ -1,3 +1,4 @@
+from cv2 import reduce
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -94,10 +95,15 @@ def visualize_output(test_images, test_outputs, gt_pts=None, batch_size=10):
     plt.show()
 
 
+def loss_function(pred:torch.Tensor, target:torch.Tensor):
+    errors = F.mse_loss(pred, target, reduction="none")
+    errors = torch.sum(errors,dim=1)
+    return torch.mean(errors, dim=0)
+
+
 def test_loss(test_loader):
     mean = 0
     count = 0
-    testCriterion = nn.MSELoss()
     # iterate through the test dataset
     for i, sample in enumerate(test_loader):
 
@@ -122,7 +128,7 @@ def test_loss(test_loader):
         # forward pass to get net output
         output_pts = net(images)
         
-        loss = testCriterion(output_pts, key_pts)
+        loss = loss_function(output_pts, key_pts)
         mean += loss.item()
         count += 1
         
@@ -147,12 +153,8 @@ def train_net(n_epochs, batch_size, lr):
     training_loss = []
     testing_loss = []
 
-
-    ## TODO: specify loss function
-    criterion = nn.MSELoss()
-
     ## TODO: specify optimizer
-    optimizer = optim.ASGD(net.parameters(),lr=lr)
+    optimizer = optim.Adam(net.parameters(),lr=lr)
 
     scheduler = RampUpCosineDecayScheduler(optimizer, lr, 1e-5, 1000, 10)
 
@@ -198,7 +200,7 @@ def train_net(n_epochs, batch_size, lr):
             output_pts = net(images)
 
             # calculate the loss between predicted and target keypoints
-            loss = criterion(output_pts, key_pts)
+            loss = loss_function(output_pts, key_pts)
 
             # zero the parameter (weight) gradients
             optimizer.zero_grad()
