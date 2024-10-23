@@ -275,7 +275,7 @@ if __name__ == "__main__":
     # alive while training your model, not part of pytorch
     #with active_session():
     #    train_net(n_epochs)
-    training_loss, testing_loss = train_net(n_epochs, batch_size, 0.01)
+    training_loss, testing_loss = train_net(n_epochs, batch_size, 0.001)
 
     ## TODO: change the name to something uniqe for each new model
     model_dir = './'
