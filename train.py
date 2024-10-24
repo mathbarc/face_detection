@@ -141,12 +141,12 @@ def train_net(n_epochs, batch_size, lr):
     train_loader = DataLoader(transformed_dataset,
                             batch_size=batch_size,
                             shuffle=True,
-                            num_workers=0)
+                            num_workers=8)
     
     test_loader = DataLoader(test_dataset,
                             batch_size=batch_size,
                             shuffle=True,
-                            num_workers=0)
+                            num_workers=8)
 
     # prepare the net for training
     net.train(True)
@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
     ## TODO: define the data_transform using transforms.Compose([all tx's, . , .])
     # order matters! i.e. rescaling should come before a smaller crop
-    data_transform = transforms.Compose( [CropFace((1., 1.5)), Rescale((100,100)), Normalize(), ToTensor()])
+    data_transform = transforms.Compose( [CropFace((1., 5.)), Rescale((100,100)), Normalize(), ToTensor()])
 
     # testing that you've defined a transform
     assert(data_transform is not None), 'Define a data_transform'

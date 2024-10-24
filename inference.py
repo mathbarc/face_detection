@@ -43,15 +43,15 @@ def detectFace(image, net, face_cascade):
     results = []
     # loop over the detected faces from your haar cascade
     for rect in faces:
-        (x,y,w,h) = rect 
+        (x,y,w,h) = rect
         
-        scale = 1.
+        scale = 1.5
 
         w_diff = abs(scale-1)*w
         h_diff = abs(scale-1)*h
         
-        w = int(min(scale * w, image.shape[0]))
-        h = int(min(scale * h, image.shape[1]))
+        w = int(min(scale * w, image.shape[1]))
+        h = int(min(scale * h, image.shape[0]))
 
         x = int(max(x - w_diff/2., 0))
         y = int(max(y - h_diff/2., 0))
@@ -87,9 +87,15 @@ def detectFace(image, net, face_cascade):
         ## TODO: Display each detected face and the corresponding keypoints        
         out = output.detach().numpy()
         out = (out+1)/2.
+        #out_draw = out.copy()
+
+        #out_draw = out_draw * [roi.shape[1], roi.shape[0]]
+        #show_all_keypoints(roi,out_draw)
+        #cv2.imshow("roi", roi)
+        #cv2.waitKey()
+
         out[:,0] = (out[:,0]*w)+x
         out[:,1] = (out[:,1]*h)+y
-
         results.append((numpy.array([x,y,w,h],numpy.int32), out))
         
     return results
@@ -134,6 +140,6 @@ if __name__ == "__main__":
             cv2.rectangle(image, rect[:2], rect[:2]+rect[2:4], (0,255,0),3)
 
         cv2.imshow("result", image)
-        key = cv2.waitKey(33)
+        key = cv2.waitKey(1)
             
         

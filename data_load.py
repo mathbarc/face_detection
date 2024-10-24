@@ -100,8 +100,8 @@ class CropFace(object):
         w_diff = abs(1.-scale)*w
         h_diff = abs(1.-scale)*h
         
-        w = int(min(scale * w, image.shape[0]))
-        h = int(min(scale * h, image.shape[1]))
+        w = int(min(scale * w, image.shape[1]))
+        h = int(min(scale * h, image.shape[0]))
         x = int(max(x - w_diff/2., 0))
         y = int(max(y - h_diff/2., 0))
 
@@ -209,7 +209,7 @@ class ToTensor(object):
 if __name__ == "__main__":
 
     from torchvision.transforms import Compose
-    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace((1.,1.5)), Rescale((100,100)), Normalize()]))
+    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace((1.,5.)), Rescale((100,100)), Normalize()]))
 
     
 
