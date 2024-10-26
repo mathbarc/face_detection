@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
     ## TODO: define the data_transform using transforms.Compose([all tx's, . , .])
     # order matters! i.e. rescaling should come before a smaller crop
-    data_transform = transforms.Compose( [CropFace((1., 5.)), Rescale((200,200)), RandomCrop((100,100)), Normalize(), ToTensor()])
+    data_transform = transforms.Compose( [CropFaceHaar((1., 5.)), Rescale((100,100)), Normalize(), ToTensor()])
 
     # testing that you've defined a transform
     assert(data_transform is not None), 'Define a data_transform'
@@ -263,7 +263,7 @@ if __name__ == "__main__":
 
         
  
-    test_transform = transforms.Compose( [CropFace((1., 5.)), Rescale((200,200)), RandomCrop((100,100)), Normalize(), ToTensor()])
+    test_transform = transforms.Compose( [CropFaceHaar((1., 5.)), Rescale((100,100)), Normalize(), ToTensor()])
     test_dataset = FacialKeypointsDataset(csv_file=data_path+'/test_frames_keypoints.csv',
                                                 root_dir=data_path+'/test/',
                                                 transform=test_transform)

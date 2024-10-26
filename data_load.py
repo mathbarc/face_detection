@@ -254,7 +254,7 @@ class ToTensor(object):
 if __name__ == "__main__":
 
     from torchvision.transforms import Compose
-    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace((1., 5.)),  Rescale((200,200)), RandomCrop((100,100)), Normalize()]))
+    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFaceHaar((1., 5.)),  Rescale((100,100)), Normalize()]))
 
     for sample in dataset:
         img, key_pts = sample["image"], sample["keypoints"]
