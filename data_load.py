@@ -63,14 +63,14 @@ class Normalize(object):
 
         # convert image to grayscale
         image_copy = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # scale color range from [0, 255] to [0, 1]
         image_copy=  image_copy/255.0
-            
-        
+
+
         # scale keypoints to be centered around 0 with a range of [-1, 1]
         # mean = 100, sqrt = 50, so, pts should be (pts - 100)/50
-        key_pts_copy = (key_pts_copy-50)/50.
+        scale = [image_copy.shape[1]*.5, image_copy.shape[0]*.5]
+        key_pts_copy = key_pts_copy - scale
+        key_pts_copy = key_pts_copy / scale
 
         return {'image': image_copy, 'keypoints': key_pts_copy}
 
@@ -111,6 +111,51 @@ class CropFace(object):
 
         return {"image":face, "keypoints":key_pts}
 
+
+class CropFaceHaar(object):
+
+    def __init__(self, scale=1.) -> None:
+        if isinstance(scale, tuple) or isinstance(scale, list):
+            self.scale_min = scale[0]
+            self.scale_max = scale[1]
+        else:
+            self.scale = scale
+
+        self.face_detector = cv2.CascadeClassifier("/usr/local/share/opencv4/haarcascades/haarcascade_frontalcatface_extended.xml")
+
+
+    def __call__(self, sample):
+
+        image, key_pts = sample["image"], sample["keypoints"]
+
+        faces = self.face_detector.detectMultiScale(image)
+
+        if len(faces):
+            face_rect = faces[0]
+        else:
+            face_rect = cv2.boundingRect(key_pts.astype(numpy.int32))
+
+
+        x,y,w,h = face_rect
+
+        if hasattr(self,"scale_min") and hasattr(self,"scale_max"):
+            scale = (random.randrange(0,100,10) * (self.scale_max - self.scale_min) / 100) + self.scale_min
+        else:
+            scale = self.scale
+
+        w_diff = abs(1.-scale)*w
+        h_diff = abs(1.-scale)*h
+        
+        w = int(min(scale * w, image.shape[1]))
+        h = int(min(scale * h, image.shape[0]))
+        x = int(max(x - w_diff/2., 0))
+        y = int(max(y - h_diff/2., 0))
+
+
+        face = image[y:y+h, x:x+w]
+        key_pts = key_pts + [-x,-y]
+
+        return {"image":face, "keypoints":key_pts}
 
 class Rescale(object):
     """Rescale the image in a sample to a given size.
@@ -209,16 +254,20 @@ class ToTensor(object):
 if __name__ == "__main__":
 
     from torchvision.transforms import Compose
-    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace((1.,5.)), Rescale((100,100)), Normalize()]))
-
-    
+    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([CropFace((1., 5.)),  Rescale((200,200)), RandomCrop((100,100)), Normalize()]))
 
     for sample in dataset:
         img, key_pts = sample["image"], sample["keypoints"]
-        
-        key_pts = key_pts * [50,50]
-        key_pts = key_pts + [50,50]
+ 
 
+
+        print(key_pts.min())
+        print(key_pts.max())
+
+
+        scale = [img.shape[1]*.5, img.shape[0]*.5]
+        key_pts = key_pts * scale
+        key_pts = key_pts + scale
 
         show_all_keypoints(img, key_pts)
         cv2.imshow("face", img)

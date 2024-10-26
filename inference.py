@@ -45,7 +45,7 @@ def detectFace(image, net, face_cascade):
     for rect in faces:
         (x,y,w,h) = rect
         
-        scale = 1.5
+        scale = 1.
 
         w_diff = abs(scale-1)*w
         h_diff = abs(scale-1)*h
@@ -86,7 +86,7 @@ def detectFace(image, net, face_cascade):
         #i+=1
         ## TODO: Display each detected face and the corresponding keypoints        
         out = output.detach().numpy()
-        out = (out+1)/2.
+        out = (out+1.)*.5
         #out_draw = out.copy()
 
         #out_draw = out_draw * [roi.shape[1], roi.shape[0]]

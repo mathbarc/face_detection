@@ -1,3 +1,4 @@
+from random import Random
 from cv2 import reduce
 import torch
 import torch.nn as nn
@@ -13,7 +14,7 @@ from torchvision import transforms, utils
 # the dataset we created in Notebook 1 is copied in the helper file `data_load.py`
 from data_load import FacialKeypointsDataset
 # the transforms we defined in Notebook 1 are in the helper file `data_load.py`
-from data_load import Rescale, RandomCrop, Normalize, ToTensor, CropFace
+from data_load import Rescale, RandomCrop, Normalize, ToTensor, CropFace, CropFaceHaar
 
 import mlflow
 import mlflow.pytorch
@@ -96,8 +97,7 @@ def visualize_output(test_images, test_outputs, gt_pts=None, batch_size=10):
 
 
 def loss_function(pred:torch.Tensor, target:torch.Tensor):
-    errors = F.mse_loss(pred, target, reduction="none")
-    errors = torch.sum(errors,dim=1)
+    errors = 1.-F.cosine_similarity(pred, target)
     return torch.mean(errors, dim=0)
 
 
@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
     ## TODO: define the data_transform using transforms.Compose([all tx's, . , .])
     # order matters! i.e. rescaling should come before a smaller crop
-    data_transform = transforms.Compose( [CropFace((1., 5.)), Rescale((100,100)), Normalize(), ToTensor()])
+    data_transform = transforms.Compose( [CropFace((1., 5.)), Rescale((200,200)), RandomCrop((100,100)), Normalize(), ToTensor()])
 
     # testing that you've defined a transform
     assert(data_transform is not None), 'Define a data_transform'
@@ -263,7 +263,7 @@ if __name__ == "__main__":
 
         
  
-    test_transform = transforms.Compose( [CropFace(), Rescale((100,100)), Normalize(), ToTensor()])
+    test_transform = transforms.Compose( [CropFace((1., 5.)), Rescale((200,200)), RandomCrop((100,100)), Normalize(), ToTensor()])
     test_dataset = FacialKeypointsDataset(csv_file=data_path+'/test_frames_keypoints.csv',
                                                 root_dir=data_path+'/test/',
                                                 transform=test_transform)
