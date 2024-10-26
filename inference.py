@@ -86,16 +86,20 @@ def detectFace(image, net, face_cascade):
         #i+=1
         ## TODO: Display each detected face and the corresponding keypoints        
         out = output.detach().numpy()
-        out = (out+1.)*.5
+        scale = [w,h]
+
+
+        out = out * scale
+        out = out + [w*.5, h*.5]
+
+
         #out_draw = out.copy()
 
-        #out_draw = out_draw * [roi.shape[1], roi.shape[0]]
         #show_all_keypoints(roi,out_draw)
         #cv2.imshow("roi", roi)
         #cv2.waitKey()
 
-        out[:,0] = (out[:,0]*w)+x
-        out[:,1] = (out[:,1]*h)+y
+        out = out + [x,y]
         results.append((numpy.array([x,y,w,h],numpy.int32), out))
         
     return results
