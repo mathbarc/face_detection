@@ -110,9 +110,10 @@ class FaceDetectionNetV2(nn.Module):
         self.conv2 = torchvision.ops.Conv2dNormActivation(8, 16, activation_layer=torch.nn.ReLU)
         self.conv3 = torchvision.ops.Conv2dNormActivation(16, 32, activation_layer=torch.nn.ReLU)
         self.conv4 = torchvision.ops.Conv2dNormActivation(32, 64, activation_layer=torch.nn.ReLU)
-        self.fpn = torchvision.ops.FeaturePyramidNetwork([16,32,64], 136)
+        self.fpn = torchvision.ops.FeaturePyramidNetwork([16,32,64], 256)
         self.pool = torch.nn.MaxPool2d(2,2)
         self.global_pool = torch.nn.AdaptiveMaxPool1d(1)
+        self.output = torch.nn.Linear(256, 136)
         self.output_activation = torch.nn.Sigmoid()
 
 
@@ -155,6 +156,7 @@ class FaceDetectionNetV2(nn.Module):
         output = self.global_pool(output)
 
         output = torch.squeeze(output,2)
+        output = self.output(output)
         output = self.output_activation(output)
 
         # a modified x, having gone through all the layers of your model, should be returned
@@ -168,3 +170,4 @@ if __name__ == "__main__":
     output = model(input)
 
     print(output.shape)
+
