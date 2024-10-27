@@ -24,6 +24,8 @@ import mlflow.pytorch
 import models
 import sys
 from schedulers import RampUpCosineDecayScheduler
+import logging
+import tqdm
 
 def net_sample_output(test_loader):
 
@@ -174,13 +176,16 @@ def train_net(n_epochs, batch_size, lr):
     mlflow.log_params(training_params)
 
     best_test_loss = sys.float_info.max
-    for epoch in range(n_epochs):  # loop over the dataset multiple times
+    for epoch in tqdm.tqdm(range(n_epochs)):  # loop over the dataset multiple times
 
         running_loss = 0.0
         counter=0
 
         # train on batches of data, assumes you already have train_loader
         for batch_i, data in enumerate(train_loader):
+            # zero the parameter (weight) gradients
+            optimizer.zero_grad()
+            
             # get the input images and their corresponding labels
             images = data['image']
             key_pts = data['keypoints']
@@ -202,8 +207,6 @@ def train_net(n_epochs, batch_size, lr):
             # calculate the loss between predicted and target keypoints
             loss = loss_function(output_pts, key_pts)
 
-            # zero the parameter (weight) gradients
-            optimizer.zero_grad()
 
             # backward pass to calculate the weight gradients
             loss.backward()
@@ -224,7 +227,7 @@ def train_net(n_epochs, batch_size, lr):
         }
         scheduler.step()
         mlflow.log_metrics(metrics,epoch+1)
-        print('Epoch: {}, Batch: {}, Avg. Loss: {}, Avg. Testing Loss: {}'.format(epoch + 1, batch_i+1, running_loss/counter, tLoss))
+        #print('Epoch: {}, Batch: {}, Avg. Loss: {}, Avg. Testing Loss: {}'.format(epoch + 1, batch_i+1, running_loss/counter, tLoss))
         mlflow.pytorch.log_model(net, "last",extra_files=["./models.py"])
         if tLoss < best_test_loss:
             best_test_loss = tLoss
@@ -238,6 +241,7 @@ def train_net(n_epochs, batch_size, lr):
 
 
 if __name__ == "__main__":
+    logging.getLogger("mlflow").setLevel(logging.ERROR)
     batch_size = 32
 
     net = models.FaceDetectionNetV2()

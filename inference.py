@@ -46,7 +46,7 @@ def detectFace(image, net, face_cascade):
     for rect in faces:
         (x,y,w,h) = rect
         
-        scale = 2.
+        scale = 1.
 
         w_diff = abs(scale-1)*w
         h_diff = abs(scale-1)*h
