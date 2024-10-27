@@ -239,7 +239,8 @@ def train_net(n_epochs, batch_size, lr):
 
 if __name__ == "__main__":
     batch_size = 32
-    net = models.FaceDetectionNet()
+
+    net = models.FaceDetectionNetV2()
     print(net)
 
     if(torch.cuda.is_available()):

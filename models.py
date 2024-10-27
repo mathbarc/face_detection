@@ -1,11 +1,13 @@
 ## TODO: define the convolutional neural network architecture
 
+from threading import activeCount
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms.functional
+import torchvision
 # can use the below import should you choose to initialize the weights of your Net
-import torch.nn.init as I
+from collections import OrderedDict
 
 
 class FaceDetectionNet(nn.Module):
@@ -90,3 +92,79 @@ class FaceDetectionNet(nn.Module):
         x = self.output(x)
         # a modified x, having gone through all the layers of your model, should be returned
         return x
+
+class FaceDetectionNetV2(nn.Module):
+
+    def __init__(self):
+        super(FaceDetectionNetV2, self).__init__()
+        
+        ## TODO: Define all the layers of this CNN, the only requirements are:
+        ## 1. This network takes in a square (same width and height), grayscale image as input
+        ## 2. It ends with a linear layer that represents the keypoints
+        ## it's suggested that you make this last layer output 136 values, 2 for each of the 68 keypoint (x, y) pairs
+        
+        # As an example, you've been given a convolutional layer, which you may (but don't have to) change:
+        # 1 input image channel (grayscale), 32 output channels/feature maps, 5x5 square convolution kernel
+
+        self.conv1 = torchvision.ops.Conv2dNormActivation(1, 8, activation_layer=torch.nn.ReLU)
+        self.conv2 = torchvision.ops.Conv2dNormActivation(8, 16, activation_layer=torch.nn.ReLU)
+        self.conv3 = torchvision.ops.Conv2dNormActivation(16, 32, activation_layer=torch.nn.ReLU)
+        self.conv4 = torchvision.ops.Conv2dNormActivation(32, 64, activation_layer=torch.nn.ReLU)
+        self.fpn = torchvision.ops.FeaturePyramidNetwork([16,32,64], 136)
+        self.pool = torch.nn.MaxPool2d(2,2)
+        self.global_pool = torch.nn.AdaptiveMaxPool1d(1)
+        self.output_activation = torch.nn.Sigmoid()
+
+
+        
+        ## Note that among the layers to add, consider including:
+        # maxpooling layers, multiple conv layers, fully-connected layers, and other layers (such as dropout or batch normalization) to avoid overfitting
+
+
+    def forward(self, input):
+        ## TODO: Define the feedforward behavior of this model
+        ## x is the input image and, as an example, here you may choose to include a pool/conv step:
+
+        x = self.conv1(input)
+        x = self.pool(x)
+
+        i = self.conv2(x)
+        x = self.pool(i)
+
+        j = self.conv3(x)
+        x = self.pool(j)
+
+        k = self.conv4(x)
+        
+        fpnInput = OrderedDict()
+        fpnInput["i"] = i
+        fpnInput["j"] = j
+        fpnInput["k"] = k
+
+        fpnResult = self.fpn(fpnInput)
+
+        i = fpnResult["i"]
+        j = fpnResult["j"]
+        k = fpnResult["k"]
+
+        i = torch.flatten(i, 2)
+        j = torch.flatten(j, 2)
+        k = torch.flatten(k, 2)
+
+        output = torch.concat([i,j,k], 2)
+        output = self.global_pool(output)
+
+        output = torch.squeeze(output,2)
+        output = self.output_activation(output)
+
+        # a modified x, having gone through all the layers of your model, should be returned
+        return output
+
+
+if __name__ == "__main__":
+    model = FaceDetectionNetV2()
+
+    input = torch.ones((1,1,100,100), dtype=torch.float)
+    output = model(input)
+
+    print(output.shape)

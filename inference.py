@@ -11,6 +11,7 @@ from models import FaceDetectionNet
 from utils import show_all_keypoints
 import cv2
 
+import time
 
 def toTensor(img):
     image = numpy.copy(img)
@@ -75,7 +76,12 @@ def detectFace(image, net, face_cascade):
         
         ## TODO: Make facial keypoint predictions using your loaded, trained network   
         #print(netInput.shape)
+        start_time = time.time()
         output = net(netInput)
+        end_time = time.time()
+
+        print(end_time-start_time, "s")
+
         output = output.view(68, 2)
         #print(output.shape)
         if(torch.cuda.is_initialized()):
@@ -87,7 +93,9 @@ def detectFace(image, net, face_cascade):
         ## TODO: Display each detected face and the corresponding keypoints        
         out = output.detach().numpy()
         out *= [w, h]
-        out += [w/2, h/2]
+        #out += [w/2, h/2]
+
+        
  
         #out_draw = out.copy()
 
