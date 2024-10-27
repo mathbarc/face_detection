@@ -45,7 +45,7 @@ def detectFace(image, net, face_cascade):
     for rect in faces:
         (x,y,w,h) = rect
         
-        scale = 1.
+        scale = 2.
 
         w_diff = abs(scale-1)*w
         h_diff = abs(scale-1)*h
@@ -65,7 +65,7 @@ def detectFace(image, net, face_cascade):
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         
         ## TODO: Rescale the detected face to be the expected square size for your CNN (224x224, suggested)
-        resized = cv2.resize(gray, (100,100)).astype(float)
+        resized = cv2.resize(gray, (100,100)).astype(numpy.double)
         resized = resized/255.0
 
         #print(resized.shape)
@@ -86,13 +86,9 @@ def detectFace(image, net, face_cascade):
         #i+=1
         ## TODO: Display each detected face and the corresponding keypoints        
         out = output.detach().numpy()
-        scale = [w,h]
-
-
-        out = out * scale
-        out = out + [w*.5, h*.5]
-
-
+        out *= [w, h]
+        out += [w/2, h/2]
+ 
         #out_draw = out.copy()
 
         #show_all_keypoints(roi,out_draw)
