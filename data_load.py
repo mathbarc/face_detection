@@ -71,12 +71,11 @@ class Normalize(object):
 
         # scale keypoints to be centered around 0 with a range of [-1, 1]
         # mean = 100, sqrt = 50, so, pts should be (pts - 100)/50
+        scale = [image_copy.shape[1], image_copy.shape[0]]
+        key_pts_copy = key_pts_copy / scale
+
         if self.normalize_with_negatives:
-            scale = [image_copy.shape[1]*.5, image_copy.shape[0]*.5]
-            key_pts_copy = key_pts_copy - scale
-            key_pts_copy = key_pts_copy / scale
-        else:
-            key_pts_copy = key_pts_copy / [image_copy.shape[1], image_copy.shape[0]]
+            key_pts_copy = (key_pts_copy - 0.5) * 2.
 
         return {'image': image_copy, 'keypoints': key_pts_copy}
 
@@ -260,18 +259,21 @@ class ToTensor(object):
 if __name__ == "__main__":
 
     from torchvision.transforms import Compose
-    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", "/data/ssd1/Datasets/Faces/training", Compose([Rescale((130,130)), RandomCrop((100,100)), Normalize()]))
+
+    normalize_with_negatives = True
+
+    dataset = FacialKeypointsDataset("/data/ssd1/Datasets/Faces/training_frames_keypoints.csv", 
+                                     "/data/ssd1/Datasets/Faces/training", 
+                                     Compose([CropFace((1.,2.)),Rescale((110,110)), RandomCrop((100,100)), Normalize(normalize_with_negatives=normalize_with_negatives)]))
 
     for sample in dataset:
         img, key_pts = sample["image"], sample["keypoints"]
- 
+        print(key_pts)
 
-        #scale = [img.shape[1]*.5, img.shape[0]*.5]
-        #key_pts = key_pts * scale
-        #key_pts = key_pts + scale
-
+        if normalize_with_negatives:
+            key_pts = (0.5*key_pts)+0.5
+        
         key_pts = key_pts * [img.shape[1], img.shape[0]]
-
         show_all_keypoints(img, key_pts)
         cv2.imshow("face", img)
         key = cv2.waitKey()

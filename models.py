@@ -4,6 +4,7 @@ from threading import activeCount
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.onnx import TrainingMode
 import torchvision.transforms.functional
 import torchvision
 # can use the below import should you choose to initialize the weights of your Net
@@ -114,7 +115,7 @@ class FaceDetectionNetV2(nn.Module):
         self.pool = torch.nn.MaxPool2d(2,2)
         self.global_pool = torch.nn.AdaptiveMaxPool1d(1)
         self.output = torch.nn.Linear(256, 136)
-        self.output_activation = torch.nn.Sigmoid()
+        #self.output_activation = torch.nn.Hardtanh()
 
 
         
@@ -157,16 +158,78 @@ class FaceDetectionNetV2(nn.Module):
 
         output = torch.squeeze(output,2)
         output = self.output(output)
-        output = self.output_activation(output)
+        #output = self.output_activation(output)
+
+        # a modified x, having gone through all the layers of your model, should be returned
+        return output
+
+
+class FaceDetectionNetV3(nn.Module):
+
+    def __init__(self):
+        super(FaceDetectionNetV3, self).__init__()
+        
+        ## TODO: Define all the layers of this CNN, the only requirements are:
+        ## 1. This network takes in a square (same width and height), grayscale image as input
+        ## 2. It ends with a linear layer that represents the keypoints
+        ## it's suggested that you make this last layer output 136 values, 2 for each of the 68 keypoint (x, y) pairs
+        
+        # As an example, you've been given a convolutional layer, which you may (but don't have to) change:
+        # 1 input image channel (grayscale), 32 output channels/feature maps, 5x5 square convolution kernel
+
+        self.conv1 = torchvision.ops.Conv2dNormActivation(1, 8, activation_layer=torch.nn.ReLU)
+        self.conv2 = torchvision.ops.Conv2dNormActivation(8, 16, activation_layer=torch.nn.ReLU)
+        self.conv3 = torchvision.ops.Conv2dNormActivation(16, 32, activation_layer=torch.nn.ReLU)
+        self.conv4 = torchvision.ops.Conv2dNormActivation(32, 64, activation_layer=torch.nn.ReLU)
+        self.conv5 = torchvision.ops.Conv2dNormActivation(64, 128, activation_layer=torch.nn.ReLU)
+        self.conv6 = torch.nn.Conv2d(128, 1028, 1)
+        self.pool = torch.nn.MaxPool2d(2,2)
+        self.global_pool = torch.nn.AdaptiveMaxPool2d(1)
+        self.output = torch.nn.Linear(1028, 136)
+        self.flatten = torch.nn.Flatten(1,3)
+        #self.output_activation = torch.nn.Hardtanh()
+
+
+        
+        ## Note that among the layers to add, consider including:
+        # maxpooling layers, multiple conv layers, fully-connected layers, and other layers (such as dropout or batch normalization) to avoid overfitting
+
+
+    def forward(self, input):
+        ## TODO: Define the feedforward behavior of this model
+        ## x is the input image and, as an example, here you may choose to include a pool/conv step:
+
+        x = self.conv1(input)
+        x = self.pool(x)
+
+        i = self.conv2(x)
+        x = self.pool(i)
+
+        j = self.conv3(x)
+        x = self.pool(j)
+
+        k = self.conv4(x)
+        x = self.pool(k)
+
+        l = self.conv5(x)
+        x = self.pool(l)
+
+        m = self.conv6(x)
+
+        output = self.global_pool(m)
+        output = self.flatten(output)
+        output = self.output(output)
+        #output = self.output_activation(output)
 
         # a modified x, having gone through all the layers of your model, should be returned
         return output
 
 
 if __name__ == "__main__":
-    model = FaceDetectionNetV2()
+    model = FaceDetectionNetV3()
 
-    input = torch.ones((1,1,100,100), dtype=torch.float)
+    input = torch.ones((10,1,100,100), dtype=torch.float)
+    torch.onnx.export(model, input, "model.onnx")
     output = model(input)
 
     print(output.shape)

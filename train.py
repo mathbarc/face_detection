@@ -98,10 +98,17 @@ def visualize_output(test_images, test_outputs, gt_pts=None, batch_size=10):
     plt.show()
 
 
-def loss_function(pred:torch.Tensor, target:torch.Tensor):
+def cosine_similarity_loss_function(pred:torch.Tensor, target:torch.Tensor):
     errors = 1.-F.cosine_similarity(pred, target)
     return torch.mean(errors, dim=0)
 
+def mse_sum_mean_loss_function(pred:torch.Tensor, target:torch.Tensor):
+    errors = F.mse_loss(pred, target, reduction="none").sum(dim=1)
+    return torch.mean(errors, dim=0)
+
+def loss_function(pred:torch.Tensor, target:torch.Tensor):
+    errors = F.mse_loss(pred, target)
+    return errors
 
 def test_loss(test_loader):
     mean = 0
@@ -158,7 +165,7 @@ def train_net(n_epochs, batch_size, lr):
     ## TODO: specify optimizer
     optimizer = optim.Adam(net.parameters(),lr=lr)
 
-    scheduler = RampUpCosineDecayScheduler(optimizer, lr, 1e-5, 1000, 10)
+    scheduler = RampUpCosineDecayScheduler(optimizer, lr, 1e-5, n_epochs, 100)
 
     training_params = {
         "lr" : lr,
@@ -244,7 +251,7 @@ if __name__ == "__main__":
     logging.getLogger("mlflow").setLevel(logging.ERROR)
     batch_size = 32
 
-    net = models.FaceDetectionNetV2()
+    net = models.FaceDetectionNetV3()
     print(net)
 
     if(torch.cuda.is_available()):
@@ -252,7 +259,7 @@ if __name__ == "__main__":
 
     ## TODO: define the data_transform using transforms.Compose([all tx's, . , .])
     # order matters! i.e. rescaling should come before a smaller crop
-    data_transform = transforms.Compose( [Rescale((130,130)), RandomCrop((100,100)), Normalize(), ToTensor()])
+    data_transform = transforms.Compose( [Rescale((200,200)), RandomCrop((100,100)), Normalize(normalize_with_negatives=True), ToTensor()])
 
     # testing that you've defined a transform
     assert(data_transform is not None), 'Define a data_transform'
@@ -268,19 +275,19 @@ if __name__ == "__main__":
 
         
  
-    test_transform = transforms.Compose( [Rescale((130,130)), RandomCrop((100,100)), Normalize(), ToTensor()])
+    test_transform = transforms.Compose( [Rescale((200,200)), RandomCrop((100,100)), Normalize(normalize_with_negatives=True), ToTensor()])
     test_dataset = FacialKeypointsDataset(csv_file=data_path+'/test_frames_keypoints.csv',
                                                 root_dir=data_path+'/test/',
                                                 transform=test_transform)
 
     # train your network
-    n_epochs = 1000 # start small, and increase when you've decided on your model structure and hyperparams
+    n_epochs = 5000 # start small, and increase when you've decided on your model structure and hyperparams
 
     # this is a Workspaces-specific context manager to keep the connection
     # alive while training your model, not part of pytorch
     #with active_session():
     #    train_net(n_epochs)
-    training_loss, testing_loss = train_net(n_epochs, batch_size, 0.001)
+    training_loss, testing_loss = train_net(n_epochs, batch_size, 0.0001)
 
     ## TODO: change the name to something uniqe for each new model
     model_dir = './'
