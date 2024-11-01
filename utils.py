@@ -22,6 +22,7 @@ def separate_regions(predicted_key_pts):
         upper_lip_lower = predicted_key_pts[60:64]
         lower_lip_upper = predicted_key_pts[64:68]
     else:
+        predicted_key_pts = predicted_key_pts.view(-1,68,2)
         jaw = predicted_key_pts[:,0:17]
     
         right_eyebrow = predicted_key_pts[:,17:22]
@@ -43,7 +44,6 @@ def separate_regions(predicted_key_pts):
 
 
 def draw_region(image, region, color):
-    print(region.shape)
 
     for point in region:
         cv2.circle(image, point.astype(numpy.int32), 5, color, -1)
