@@ -112,7 +112,7 @@ def mse_loss_function(pred:torch.Tensor, target:torch.Tensor):
     errors = F.mse_loss(pred, target)
     return errors
 
-def loss_function(pred:torch.Tensor, target:torch.Tensor):
+def face_region_loss_function(pred:torch.Tensor, target:torch.Tensor):
     pred_regions = separate_regions(pred)
     target_regions = separate_regions(target)
 
@@ -121,6 +121,18 @@ def loss_function(pred:torch.Tensor, target:torch.Tensor):
     for i in range(1,len(pred_regions)):
         loss += torch.nn.functional.mse_loss(pred_regions[i], target_regions[i])
     return loss
+
+def loss_function(pred:torch.Tensor, target:torch.Tensor):
+    pred_regions = separate_regions(pred)
+    target_regions = separate_regions(target)
+
+    loss = 1. - F.cosine_similarity(pred_regions[0], target_regions[0], dim=1)
+
+    for i in range(1,len(pred_regions)):
+        loss += 1. - F.cosine_similarity(pred_regions[i], target_regions[i], dim=1)
+    return loss.sum(dim=1).mean()
+
+
 
 def test_loss(test_loader):
     mean = 0
