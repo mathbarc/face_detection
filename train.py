@@ -122,15 +122,27 @@ def face_region_loss_function(pred:torch.Tensor, target:torch.Tensor):
         loss += torch.nn.functional.mse_loss(pred_regions[i], target_regions[i])
     return loss
 
+def cosine_distance(pred:torch.Tensor, target:torch.Tensor):
+    return (1. - F.cosine_similarity(pred, target,dim=2)).mean(dim=1)
+
+def euclidian_distance(pred:torch.Tensor, target:torch.Tensor):
+
+    loss = torch.pow(pred-target,2)
+    loss = loss.sum(dim=2)
+    loss = loss.mean(dim=1)
+    
+    return loss
+
 def loss_function(pred:torch.Tensor, target:torch.Tensor):
     pred_regions = separate_regions(pred)
     target_regions = separate_regions(target)
 
-    loss = 1. - F.cosine_similarity(pred_regions[0], target_regions[0], dim=1)
+    loss = euclidian_distance(pred_regions[0], target_regions[0])
 
     for i in range(1,len(pred_regions)):
-        loss += 1. - F.cosine_similarity(pred_regions[i], target_regions[i], dim=1)
-    return loss.sum(dim=1).mean()
+        loss += euclidian_distance(pred_regions[i], target_regions[i])
+    loss *= 1./len(pred_regions)
+    return loss.mean()
 
 
 
